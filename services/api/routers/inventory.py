@@ -14,7 +14,7 @@ load_dotenv()
 router = APIRouter()
 
 # Redis client — one instance reused across requests
-redis_client = redis_lib.from_url(os.getenv("REDIS_URL"), decode_responses=True)
+redis_client = redis_lib.from_url(os.getenv("REDIS_URL",""), decode_responses=True)
 
 # Cache TTL — 30 seconds
 CACHE_TTL = 30

@@ -9,7 +9,7 @@ load_dotenv()
 # pool_pre_ping=True means SQLAlchemy checks if a connection is still alive
 # before using it. Prevents "connection closed" errors after idle periods.
 engine = create_engine(
-    os.getenv("POSTGRES_URL"),
+    os.getenv("POSTGRES_URL",""),
     pool_pre_ping=True,
     echo=False  # Set to True temporarily if you want to see every SQL query
 )

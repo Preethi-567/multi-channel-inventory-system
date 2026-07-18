@@ -24,7 +24,7 @@ def test_postgres():
 def test_redis():
     print("Testing Redis connection...")
     try:
-        r = redis.from_url(os.getenv("REDIS_URL"))
+        r = redis.from_url(os.getenv("REDIS_URL",""))
         r.ping()
         print("  Redis connected: PONG received")
     except Exception as e:

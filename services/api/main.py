@@ -27,7 +27,9 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Import routers — each file handles one group of endpoints
 # ---------------------------------------------------------------------------
-from services.api.routers import health, inventory
+from services.api.routers import health, inventory, webhooks
+
 
 app.include_router(health.router)
 app.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
+app.include_router(webhooks.router)

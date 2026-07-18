@@ -33,7 +33,7 @@ def health_check():
 
     # Check Redis
     try:
-        r = redis_lib.from_url(os.getenv("REDIS_URL"))
+        r = redis_lib.from_url(os.getenv("REDIS_URL",""))
         r.ping()
         status["redis"] = "connected"
     except Exception as e:
