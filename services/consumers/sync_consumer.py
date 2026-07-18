@@ -35,6 +35,10 @@ dlq_producer = Producer({
 
 MAX_RETRIES = 5
 
+# Producer for inventory-updates topic — alert consumer reads from this
+inventory_producer = Producer({
+    "bootstrap.servers": os.getenv("KAFKA_BROKER", "localhost:9092"),
+})
 
 def send_to_dlq(event: dict, reason: str):
     """
@@ -58,27 +62,16 @@ def process_order(event: dict, db: Session) -> bool:
     """
     Core processing logic for a single order event.
     Returns True if processed successfully, False if should go to DLQ.
-
-    Steps:
-    1. Check idempotency key — skip if already processed
-    2. Create Order record
-    3. For each line item — decrement inventory with optimistic locking
-    4. Write to inventory_ledger
-    5. Commit everything atomically
     """
     idempotency_key = event.get("idempotency_key")
     channel_name = event.get("channel")
     payload = event.get("payload", {})
 
     # ── Step 1: Idempotency check ────────────────────────────────────────────
-    # If this key exists, this is a duplicate webhook retry — skip silently
-    existing_order = db.query(Order).filter(
-        Order.idempotency_key == idempotency_key
-    ).first()
-
+    existing_order = db.query(Order).filter(Order.idempotency_key == idempotency_key).first()
     if existing_order:
         print(f"  Duplicate detected — skipping: {idempotency_key}")
-        return True  # not an error — intentional skip
+        return True 
 
     # ── Step 2: Find the channel ─────────────────────────────────────────────
     channel = db.query(Channel).filter(Channel.name == channel_name).first()
@@ -96,13 +89,16 @@ def process_order(event: dict, db: Session) -> bool:
         raw_payload=payload,
     )
     db.add(order)
-    db.flush()  # get order.id without committing yet
+    db.flush() 
 
     # ── Step 4: Process each line item ───────────────────────────────────────
     line_items = payload.get("line_items", [])
     if not line_items:
         print(f"  No line items in order — skipping")
         return False
+
+    # Keep track of successful adjustments to broadcast to Kafka at the end
+    successful_updates = []
 
     for item in line_items:
         sku = item.get("sku")
@@ -111,27 +107,24 @@ def process_order(event: dict, db: Session) -> bool:
         if not sku or quantity <= 0:
             continue
 
-        # Find the product
         product = db.query(Product).filter(Product.sku == sku).first()
         if not product:
             print(f"  SKU not found: {sku} — sending to DLQ")
             return False
 
-        # Find inventory for this product+channel
-        inventory = db.query(Inventory).filter(
-            Inventory.product_id == product.id,
-            Inventory.channel_id == channel.id
-        ).first()
-
-        if not inventory:
-            print(f"  No inventory record for {sku} on {channel_name}")
-            return False
-
-        # ── Optimistic locking loop ──────────────────────────────────────────
-        # Read current version, update with version check
-        # If someone else updated between our read and write, retry
+        # ── Corrected Optimistic locking loop ───────────────────────────────
         success = False
         for attempt in range(MAX_RETRIES):
+            # FIX: Always force a fresh query to database on retry to skip SQLAlchemy caching
+            inventory = db.query(Inventory).filter(
+                Inventory.product_id == product.id,
+                Inventory.channel_id == channel.id
+            ).first()
+
+            if not inventory:
+                print(f"  No inventory record for {sku} on {channel_name}")
+                return False
+
             current_version = inventory.version
             current_stock = inventory.quantity_on_hand
 
@@ -139,15 +132,17 @@ def process_order(event: dict, db: Session) -> bool:
                 print(f"  Insufficient stock for {sku}: has {current_stock}, needs {quantity}")
                 return False
 
-            # Conditional UPDATE — only succeeds if version hasn't changed
+            new_stock = current_stock - quantity
+
+            # Conditional UPDATE — only succeeds if version matches the read state
             rows_updated = db.query(Inventory).filter(
                 Inventory.id == inventory.id,
                 Inventory.version == current_version
             ).update({
-                "quantity_on_hand": current_stock - quantity,
+                "quantity_on_hand": new_stock,
                 "version": current_version + 1,
                 "updated_at": datetime.now(timezone.utc)
-            })
+            }, synchronize_session=False) # FIX: Prevents SQLAlchemy from getting confused by dynamic updates
 
             if rows_updated == 1:
                 # Success — write ledger entry
@@ -157,7 +152,7 @@ def process_order(event: dict, db: Session) -> bool:
                     channel_id=channel.id,
                     change_type="sale",
                     quantity_delta=-quantity,
-                    quantity_after=current_stock - quantity,
+                    quantity_after=new_stock,
                     reference_id=order.id,
                     notes=f"Order {idempotency_key}"
                 )
@@ -174,13 +169,21 @@ def process_order(event: dict, db: Session) -> bool:
                 )
                 db.add(order_item)
 
-                print(f"  {sku}: {current_stock} → {current_stock - quantity} (attempt {attempt + 1})")
+                print(f"  {sku}: {current_stock} → {new_stock} (attempt {attempt + 1})")
+                
+                # Cache the updated state for our post-commit Kafka dispatch
+                successful_updates.append({
+                    "product_id": str(product.id),
+                    "channel_id": str(channel.id),
+                    "sku": sku,
+                    "quantity_on_hand": new_stock
+                })
+                
                 success = True
                 break
             else:
-                # Conflict — someone else updated — refresh and retry
+                # Conflict — someone else updated. Loop restarts, triggering fresh DB query
                 print(f"  Version conflict on {sku} — retrying (attempt {attempt + 1})")
-                db.refresh(inventory)
 
         if not success:
             print(f"  Max retries exceeded for {sku}")
@@ -190,6 +193,15 @@ def process_order(event: dict, db: Session) -> bool:
     order.status = "processed"
     order.processed_at = datetime.now(timezone.utc)
     db.commit()
+
+    # OPTIMIZATION: Emit Kafka events using cached memory data, avoiding N+1 DB loops
+    for update_event in successful_updates:
+        inventory_producer.produce(
+            topic="inventory-updates",
+            value=json.dumps(update_event)
+        )
+    inventory_producer.poll(0)
+
     print(f"  Order committed: {idempotency_key}")
     return True
 
@@ -253,6 +265,9 @@ def run():
     except KeyboardInterrupt:
         print("\nShutting down consumer...")
     finally:
+        print("Flushing producers...")
+        inventory_producer.flush()
+        dlq_producer.flush()
         consumer.close()
 
 

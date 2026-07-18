@@ -154,3 +154,42 @@ def get_inventory_by_sku(sku: str, db: Session = Depends(get_db)):
     redis_client.setex(cache_key, CACHE_TTL, json.dumps(result))
 
     return {"source": "database", "data": result}
+
+from database.models import Alert
+
+@router.get("/alerts")
+def get_alerts(unread_only: bool = True, db: Session = Depends(get_db)):
+    """
+    Returns all alerts, optionally filtered to unread only.
+    """
+    query = db.query(
+        Alert,
+        Product.sku,
+        Product.name,
+        Channel.name.label("channel_name")
+    ).join(Product, Product.id == Alert.product_id)\
+     .join(Channel, Channel.id == Alert.channel_id)
+
+    if unread_only:
+        query = query.filter(Alert.is_read == False)
+
+    query = query.order_by(Alert.created_at.desc())
+    rows = query.all()
+
+    return {
+        "total": len(rows),
+        "alerts": [
+            {
+                "id": str(row.Alert.id),
+                "sku": row.sku,
+                "product_name": row.name,
+                "channel": row.channel_name,
+                "alert_type": row.Alert.alert_type,
+                "severity": row.Alert.severity,
+                "message": row.Alert.message,
+                "is_read": row.Alert.is_read,
+                "created_at": row.Alert.created_at.isoformat(),
+            }
+            for row in rows
+        ]
+    }

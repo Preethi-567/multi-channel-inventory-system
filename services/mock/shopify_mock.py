@@ -9,6 +9,29 @@ import random
 import uuid
 from datetime import datetime, timezone
 import uvicorn
+import os
+from contextlib import asynccontextmanager
+
+WEBHOOK_TARGET = os.getenv("WEBHOOK_TARGET", "http://localhost:8000/webhooks/shopify")
+
+PRODUCTS = [
+    {"sku": "TSHIRT-RED-M",   "price": 599.00},
+    {"sku": "TSHIRT-BLU-L",   "price": 599.00},
+    {"sku": "EARBUDS-BLK",    "price": 2499.00},
+    {"sku": "EARBUDS-WHT",    "price": 2499.00},
+    {"sku": "WATERBOTTLE-1L", "price": 799.00},
+    {"sku": "BACKPACK-BLK",   "price": 1999.00},
+    {"sku": "PHONE-CASE-S23", "price": 349.00},
+    {"sku": "YOGA-MAT-PUR",   "price": 999.00},
+    {"sku": "DESK-LAMP-WHT",  "price": 1299.00},
+    {"sku": "NOTEBOOK-A5",    "price": 249.00},
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(order_simulator(interval_seconds=5.0))
+    yield
 
 app = FastAPI(title="Mock Shopify Server", version="0.1.0", lifespan=lifespan)
 
