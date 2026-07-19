@@ -1,0 +1,21 @@
+[2026-07-19T04:17:53.525+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-07-19T04:17:53.659+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: daily_sales_aggregation.aggregate_daily_sales scheduled__2026-04-06T00:00:00+00:00 [queued]>
+[2026-07-19T04:17:53.698+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: daily_sales_aggregation.aggregate_daily_sales scheduled__2026-04-06T00:00:00+00:00 [queued]>
+[2026-07-19T04:17:53.705+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 4
+[2026-07-19T04:17:53.780+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): aggregate_daily_sales> on 2026-04-06 00:00:00+00:00
+[2026-07-19T04:17:53.802+0000] {standard_task_runner.py:63} INFO - Started process 549 to run task
+[2026-07-19T04:17:53.818+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', 'daily_sales_aggregation', 'aggregate_daily_sales', 'scheduled__2026-04-06T00:00:00+00:00', '--job-id', '151', '--raw', '--subdir', 'DAGS_FOLDER/daily_sales_aggregation.py', '--cfg-path', '/tmp/tmplvp23f48']
+[2026-07-19T04:17:53.828+0000] {standard_task_runner.py:91} INFO - Job 151: Subtask aggregate_daily_sales
+[2026-07-19T04:17:54.047+0000] {task_command.py:426} INFO - Running <TaskInstance: daily_sales_aggregation.aggregate_daily_sales scheduled__2026-04-06T00:00:00+00:00 [running]> on host fe12dd86f5c6
+[2026-07-19T04:17:54.260+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='inventory-platform' AIRFLOW_CTX_DAG_ID='daily_sales_aggregation' AIRFLOW_CTX_TASK_ID='aggregate_daily_sales' AIRFLOW_CTX_EXECUTION_DATE='2026-04-06T00:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-06T00:00:00+00:00'
+[2026-07-19T04:17:54.263+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-07-19T04:17:54.299+0000] {logging_mixin.py:188} WARNING - /home/airflow/.local/lib/python3.10/site-packages/airflow/utils/context.py:320 AirflowContextDeprecationWarning: Accessing 'execution_date' from the template is deprecated and will be removed in a future version. Please use 'data_interval_start' or 'logical_date' instead.
+[2026-07-19T04:17:54.301+0000] {logging_mixin.py:188} INFO - Aggregating sales for: 2026-04-06
+[2026-07-19T04:17:54.326+0000] {logging_mixin.py:188} INFO -   Found 12 product-channel combinations for 2026-04-06
+[2026-07-19T04:17:54.344+0000] {logging_mixin.py:188} INFO -   Upserted 12 rows into analytics.fact_daily_sales
+[2026-07-19T04:17:54.349+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-07-19T04:17:54.353+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-07-19T04:17:54.373+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=daily_sales_aggregation, task_id=aggregate_daily_sales, run_id=scheduled__2026-04-06T00:00:00+00:00, execution_date=20260406T000000, start_date=20260719T041753, end_date=20260719T041754
+[2026-07-19T04:17:54.439+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-07-19T04:17:54.477+0000] {taskinstance.py:3498} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-07-19T04:17:54.482+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

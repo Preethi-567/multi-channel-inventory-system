@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: mysecretpassword
       POSTGRES_DB: postgres
+      POSTGRES_MULTIPLE_DATABASES: "postgres,airflow"
     ports:
       - "5432:5432"
     volumes:
@@ -47,6 +48,30 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - inventory-net
+
+  airflow:
+    image: apache/airflow:2.9.1-python3.10
+    container_name: my-airflow
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:mysecretpassword@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: "lfZnFJRFDpNgfEBa8I2GqJlFlFxvnBDrZ0qm_QWw7Kc="
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "inventory-platform-secret"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      POSTGRES_URL: postgresql://postgres:mysecretpassword@postgres:5432/postgres
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./database:/opt/airflow/database
+    ports:
+      - "8080:8080"
+    networks:
+      - inventory-net
+    command: >
+      bash -c "airflow db migrate; airflow scheduler & exec airflow webserver"
 
 volumes:
   pgdata:
