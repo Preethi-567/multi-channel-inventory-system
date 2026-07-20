@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s      # scrape every 15 seconds
+  evaluation_interval: 15s  # evaluate rules every 15 seconds
+
+scrape_configs:
+  # Scrape FastAPI metrics endpoint
+  - job_name: "inventory-api"
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+    metrics_path: "/metrics"
+
+  # Scrape Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
