@@ -64,7 +64,7 @@ services:
       POSTGRES_URL: postgresql://postgres:mysecretpassword@postgres:5432/postgres
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
+      - airflow_logs:/opt/airflow/logs
       - ./database:/opt/airflow/database
     ports:
       - "8080:8080"
@@ -75,6 +75,7 @@ services:
 
 volumes:
   pgdata:
+  airflow_logs:
 
 networks:
   inventory-net:

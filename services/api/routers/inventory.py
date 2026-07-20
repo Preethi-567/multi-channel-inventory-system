@@ -131,6 +131,53 @@ def get_alerts(unread_only: bool = True, db: Session = Depends(get_db)):
         ]
     }
 
+@router.get("/forecasts")
+def get_forecasts(reorder_only: bool = False, db: Session = Depends(get_db)):
+    """
+    Returns Prophet forecast results with stockout dates and reorder flags.
+    """
+    from database.models import ForecastResult
+
+    query = db.query(
+        ForecastResult,
+        Product.sku,
+        Product.name,
+        Product.reorder_qty,
+        Product.supplier_lead_days,
+    ).join(Product, Product.id == ForecastResult.product_id)
+
+    if reorder_only:
+        query = query.filter(ForecastResult.reorder_flag == True)
+
+    query = query.order_by(ForecastResult.stockout_date.asc().nullslast())
+    rows = query.all()
+
+    # Deduplicate — keep most recent forecast per product
+    seen = {}
+    for row in rows:
+        key = str(row.ForecastResult.product_id)
+        if key not in seen:
+            seen[key] = row
+
+    return {
+        "total": len(seen),
+        "forecasts": [
+            {
+                "sku": row.sku,
+                "product_name": row.name,
+                "current_horizon_days": row.ForecastResult.horizon_days,
+                "predicted_daily_units": float(row.ForecastResult.predicted_units or 0),
+                "stockout_date": str(row.ForecastResult.stockout_date) if row.ForecastResult.stockout_date else None,
+                "reorder_flag": row.ForecastResult.reorder_flag,
+                "reorder_qty": row.reorder_qty,
+                "supplier_lead_days": row.supplier_lead_days,
+                "model_mape": float(row.ForecastResult.model_mape) if row.ForecastResult.model_mape else None,
+                "generated_at": row.ForecastResult.generated_at.isoformat(),
+            }
+            for row in seen.values()
+        ]
+    }
+
 @router.get("/{sku}")
 def get_inventory_by_sku(sku: str, db: Session = Depends(get_db)):
     """

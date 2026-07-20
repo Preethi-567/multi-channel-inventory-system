@@ -7,3 +7,4 @@ dist/
 .pytest_cache/
 .DS_Store
 airflow/logs/
+airflow/logs/scheduler/latest
