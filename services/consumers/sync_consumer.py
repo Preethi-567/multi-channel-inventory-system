@@ -45,6 +45,15 @@ def send_to_dlq(event: dict, reason: str):
     Sends a failed event to the dead-letter-queue topic.
     Never silently discard a failed event — always park it in DLQ.
     """
+
+    # 1. Extract the channel safely (Defaulting to "unknown" if not present/missing)
+    channel_name = event.get("channel", "unknown")
+
+    # 2. Import and increment the Prometheus metrics for the DLQ route
+    from services.api.metrics import INVENTORY_UPDATES, KAFKA_MESSAGES_CONSUMED
+    INVENTORY_UPDATES.labels(channel=channel_name, result="dlq").inc()
+    KAFKA_MESSAGES_CONSUMED.labels(topic="order-events", result="dlq").inc()
+    
     dlq_event = {
         "original_event": event,
         "failure_reason": reason,
@@ -193,6 +202,10 @@ def process_order(event: dict, db: Session) -> bool:
     order.status = "processed"
     order.processed_at = datetime.now(timezone.utc)
     db.commit()
+
+    from services.api.metrics import INVENTORY_UPDATES, KAFKA_MESSAGES_CONSUMED
+    INVENTORY_UPDATES.labels(channel=channel_name, result="success").inc()
+    KAFKA_MESSAGES_CONSUMED.labels(topic="order-events", result="success").inc()
 
     # OPTIMIZATION: Emit Kafka events using cached memory data, avoiding N+1 DB loops
     for update_event in successful_updates:

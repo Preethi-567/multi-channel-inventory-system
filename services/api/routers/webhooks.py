@@ -67,6 +67,10 @@ async def shopify_webhook(request: Request):
     )
     producer.poll(0)  # trigger delivery callbacks without blocking
 
+    from services.api.metrics import WEBHOOK_EVENTS, KAFKA_MESSAGES_PRODUCED
+    WEBHOOK_EVENTS.labels(channel="shopify", event_type="order.created").inc()
+    KAFKA_MESSAGES_PRODUCED.labels(topic="order-events").inc()    
+
     return {
         "status": "received",
         "event_id": event["event_id"],
@@ -99,6 +103,10 @@ async def amazon_webhook(request: Request):
         callback=delivery_report
     )
     producer.poll(0)
+
+    from services.api.metrics import WEBHOOK_EVENTS, KAFKA_MESSAGES_PRODUCED
+    WEBHOOK_EVENTS.labels(channel="amazon", event_type="order.created").inc()   
+    KAFKA_MESSAGES_PRODUCED.labels(topic="order-events").inc()
 
     return {
         "status": "received",

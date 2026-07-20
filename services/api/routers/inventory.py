@@ -37,10 +37,12 @@ def get_inventory_summary(db: Session = Depends(get_db)):
     cache_key = "inventory:summary"
 
     # Step 1 — check Redis first
+    from services.api.metrics import CACHE_HITS, CACHE_MISSES
     cached = redis_client.get(cache_key)
     if cached:
-        # Cache hit — deserialize and return immediately
+        CACHE_HITS.labels(endpoint="inventory_summary").inc()
         return {"source": "cache", "data": json.loads(cached)}
+    CACHE_MISSES.labels(endpoint="inventory_summary").inc()
 
     # Step 2 — cache miss — query Postgres
     # Join inventory → products → channels to get everything in one query
@@ -187,9 +189,12 @@ def get_inventory_by_sku(sku: str, db: Session = Depends(get_db)):
     cache_key = f"inventory:{sku}"
 
     # Check cache first
+    from services.api.metrics import CACHE_HITS, CACHE_MISSES
     cached = redis_client.get(cache_key)
     if cached:
+        CACHE_HITS.labels(endpoint="inventory_sku").inc()
         return {"source": "cache", "data": json.loads(cached)}
+    CACHE_MISSES.labels(endpoint="inventory_sku").inc()
 
     # Query Postgres
     rows = (
