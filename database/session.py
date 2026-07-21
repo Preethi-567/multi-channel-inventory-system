@@ -11,6 +11,10 @@ load_dotenv()
 engine = create_engine(
     os.getenv("POSTGRES_URL",""),
     pool_pre_ping=True,
+    pool_size=10,  # maintain 20 persistent connections 
+    max_overflow=10,  # allow up to 10 additional connections (for bursts)
+    pool_timeout=30,  # wait up to 30 seconds for a connection before raising an error
+    pool_recycle=1800,  # recycle connections every 30 minutes to avoid stale connections
     echo=False  # Set to True temporarily if you want to see every SQL query
 )
 

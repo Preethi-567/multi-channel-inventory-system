@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from database.session import SessionLocal
 import redis as redis_lib
 import psycopg2
 from dotenv import load_dotenv
@@ -22,10 +23,11 @@ def health_check():
         "redis": "unknown",
     }
 
-    # Check Postgres
+    # Check Postgres use connection pool instead of creating a new connection each time
     try:
-        conn = psycopg2.connect(os.getenv("POSTGRES_URL"))
-        conn.close()
+        db = SessionLocal()
+        db.execute(__import__('sqlalchemy').text("SELECT 1"))
+        db.close()
         status["postgres"] = "connected"
     except Exception as e:
         status["postgres"] = f"error: {str(e)}"

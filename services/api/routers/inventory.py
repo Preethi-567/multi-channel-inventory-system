@@ -98,9 +98,15 @@ from database.models import Alert
 
 @router.get("/alerts")
 def get_alerts(unread_only: bool = True, db: Session = Depends(get_db)):
-    """
-    Returns all alerts, optionally filtered to unread only.
-    """
+    from services.api.metrics import CACHE_HITS, CACHE_MISSES
+    cache_key = f"alerts:unread_{unread_only}"
+
+    cached = redis_client.get(cache_key)
+    if cached:
+        CACHE_HITS.labels(endpoint="alerts").inc()
+        return {"source": "cache", "data": json.loads(cached)}
+    CACHE_MISSES.labels(endpoint="alerts").inc()
+
     query = db.query(
         Alert,
         Product.sku,
@@ -115,23 +121,24 @@ def get_alerts(unread_only: bool = True, db: Session = Depends(get_db)):
     query = query.order_by(Alert.created_at.desc())
     rows = query.all()
 
-    return {
-        "total": len(rows),
-        "alerts": [
-            {
-                "id": str(row.Alert.id),
-                "sku": row.sku,
-                "product_name": row.name,
-                "channel": row.channel_name,
-                "alert_type": row.Alert.alert_type,
-                "severity": row.Alert.severity,
-                "message": row.Alert.message,
-                "is_read": row.Alert.is_read,
-                "created_at": row.Alert.created_at.isoformat(),
-            }
-            for row in rows
-        ]
-    }
+    result = [
+        {
+            "id": str(row.Alert.id),
+            "sku": row.sku,
+            "product_name": row.name,
+            "channel": row.channel_name,
+            "alert_type": row.Alert.alert_type,
+            "severity": row.Alert.severity,
+            "message": row.Alert.message,
+            "is_read": row.Alert.is_read,
+            "created_at": row.Alert.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+    # Cache for 10 seconds — alerts change less frequently than inventory
+    redis_client.setex(cache_key, 10, json.dumps(result))
+    return {"source": "database", "alerts": result}
 
 @router.get("/forecasts")
 def get_forecasts(reorder_only: bool = False, db: Session = Depends(get_db)):
