@@ -81,19 +81,40 @@ async def shopify_webhook(request: Request):
 @router.post("/amazon")
 async def amazon_webhook(request: Request):
     """
-    Same pattern as Shopify — different channel name and idempotency key prefix.
+    Receives order webhook from Amazon SP-API (or mock Amazon server).
+    Amazon uses AmazonOrderId, OrderItems instead of Shopify's id, line_items.
+    We normalize to the same internal event format before publishing to Kafka.
     """
     payload = await request.json()
 
     order_id = payload.get("AmazonOrderId", str(uuid.uuid4()))
     idempotency_key = f"amazon_{order_id}_v1"
 
+    # Normalize Amazon line items to match our internal format
+    # Amazon uses SellerSKU and QuantityOrdered
+    # Our consumer expects sku and quantity
+    order_items = payload.get("OrderItems", [])
+    normalized_items = [
+        {
+            "sku": item.get("SellerSKU"),
+            "quantity": item.get("QuantityOrdered", 1),
+            "unit_price": float(item.get("ItemPrice", {}).get("Amount", 0)) / max(item.get("QuantityOrdered", 1), 1)
+        }
+        for item in order_items
+        if item.get("SellerSKU") and item.get("QuantityOrdered", 0) > 0
+    ]
+
+    # Build normalized event — same format as Shopify
     event = {
         "event_id": str(uuid.uuid4()),
         "idempotency_key": idempotency_key,
         "channel": "amazon",
         "event_type": "order.created",
-        "payload": payload
+        "payload": {
+            "id": order_id,
+            "line_items": normalized_items,
+            "raw": payload  # preserve original for audit
+        }
     }
 
     producer.produce(
@@ -105,7 +126,7 @@ async def amazon_webhook(request: Request):
     producer.poll(0)
 
     from services.api.metrics import WEBHOOK_EVENTS, KAFKA_MESSAGES_PRODUCED
-    WEBHOOK_EVENTS.labels(channel="amazon", event_type="order.created").inc()   
+    WEBHOOK_EVENTS.labels(channel="amazon", event_type="order.created").inc()
     KAFKA_MESSAGES_PRODUCED.labels(topic="order-events").inc()
 
     return {
