@@ -68,10 +68,11 @@ async def prometheus_middleware(request: Request, call_next):
 # ---------------------------------------------------------------------------
 # Import and register routers
 # ---------------------------------------------------------------------------
-from services.api.routers import health, inventory, webhooks
+from services.api.routers import health, inventory, webhooks, analytics
 from services.api.metrics import router as metrics_router
 
 app.include_router(metrics_router)
 app.include_router(health.router)
 app.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 app.include_router(webhooks.router)
+app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])

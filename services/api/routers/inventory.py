@@ -137,7 +137,7 @@ def get_alerts(unread_only: bool = True, db: Session = Depends(get_db)):
     ]
 
     # Cache for 10 seconds — alerts change less frequently than inventory
-    redis_client.setex(cache_key, 10, json.dumps(result))
+    redis_client.setex(cache_key, 5, json.dumps(result))
     return {"source": "database", "alerts": result}
 
 @router.get("/forecasts")
@@ -251,4 +251,24 @@ def get_inventory_by_sku(sku: str, db: Session = Depends(get_db)):
     redis_client.setex(cache_key, CACHE_TTL, json.dumps(result))
 
     return {"source": "database", "data": result}
+
+@router.patch("/alerts/{alert_id}/read")
+def mark_alert_read(alert_id: str, db: Session = Depends(get_db)):
+    """
+    Marks a single alert as read.
+    Also invalidates the alerts Redis cache so next fetch is fresh.
+    """
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+
+    alert.is_read = True
+    db.commit()
+
+    # Invalidate Redis cache — alert state changed
+    redis_client.delete("alerts:unread_True")
+    redis_client.delete("alerts:unread_False")
+
+    return {"id": alert_id, "is_read": True}
 
