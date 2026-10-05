@@ -9,6 +9,8 @@ import {
   ResponsiveContainer, Cell
 } from "recharts"
 import "./App.css"
+import Login from "./Login"
+
 
 const API = "/api"
 const REFRESH_MS = 30000
@@ -250,8 +252,32 @@ function AnalyticsPage({ data }) {
   return (
     <div className="analytics-page">
 
+            {/* Export button */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <a
+          href="/api/analytics/export"
+          download
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: "#166534",
+            color: "#fff",
+            padding: "8px 18px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: "600",
+            textDecoration: "none",
+            border: "1px solid #16a34a",
+          }}
+        >
+          ⬇ Export to Excel
+        </a>
+      </div>
+
       {/* Category filter tabs */}
       <div className="category-tabs">
+        
         {categories.map(cat => (
           <button
             key={cat}
@@ -403,6 +429,7 @@ export default function App() {
   const [analytics, setAnalytics] = useState([])
   const [lastRefresh, setLastRefresh] = useState(null)
   const [loading, setLoading]   = useState(true)
+  const [user, setUser]       = useState(localStorage.getItem("username") || null)
 
   const fetchAll = useCallback(async () => {
     try {
@@ -440,9 +467,17 @@ export default function App() {
     }
   }, [])
 
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("username")
+    setUser(null)
+  }, [])
+
   const criticalCount = alerts.filter(a => a.severity === "critical").length
   const lowStockCount = inventory.filter(i => i.low_stock).length
   const reorderCount  = forecasts.filter(f => f.reorder_flag).length
+
+  if (!user) return <Login onLogin={(u) => { setUser(u); fetchAll(); }} />
 
   if (loading) return <div className="loading">Loading...</div>
 
@@ -461,6 +496,9 @@ export default function App() {
           </div>
           <button className="refresh-btn" onClick={fetchAll}>
             <RefreshCw size={14} /> Refresh
+          </button>
+          <button className="refresh-btn" onClick={handleLogout} style={{ background: "#334155" }}>
+            Sign out
           </button>
           {lastRefresh && <span className="last-refresh">Updated {lastRefresh.toLocaleTimeString()}</span>}
         </div>

@@ -1,0 +1,49 @@
+# FastAPI + server
+fastapi==0.139.2
+uvicorn==0.51.0
+starlette==1.3.1
+pydantic==2.13.4
+pydantic_core==2.46.4
+python-multipart==0.0.9
+email_validator==2.1.1
+
+# Database
+SQLAlchemy==2.0.51
+alembic==1.18.5
+psycopg2-binary==2.9.12
+
+# Kafka
+confluent-kafka==2.15.0
+
+# Redis
+redis==8.0.1
+
+# Environment + utils
+python-dotenv==1.2.2
+python-dateutil==2.9.0.post0
+pytz==2024.1
+
+# Forecasting
+prophet==1.3.0
+pandas==2.3.3
+numpy==2.2.6
+
+# Excel export
+openpyxl==3.1.5
+
+# Observability
+prometheus_client==0.25.0
+
+# Auth
+PyJWT==2.8.0
+cryptography==41.0.7
+passlib==1.7.4
+bcrypt==4.1.3
+
+# Testing
+pytest==9.1.1
+requests==2.34.2
+httpx==0.28.1
+
+# Load testing
+locust==2.46.0

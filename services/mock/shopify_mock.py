@@ -13,16 +13,45 @@ import uvicorn
 WEBHOOK_TARGET = os.getenv("WEBHOOK_TARGET", "http://localhost:8000/webhooks/shopify")
 
 PRODUCTS = [
-    {"sku": "TSHIRT-RED-M",   "price": 599.00},
-    {"sku": "TSHIRT-BLU-L",   "price": 599.00},
-    {"sku": "EARBUDS-BLK",    "price": 2499.00},
-    {"sku": "EARBUDS-WHT",    "price": 2499.00},
-    {"sku": "WATERBOTTLE-1L", "price": 799.00},
-    {"sku": "BACKPACK-BLK",   "price": 1999.00},
-    {"sku": "PHONE-CASE-S23", "price": 349.00},
-    {"sku": "YOGA-MAT-PUR",   "price": 999.00},
-    {"sku": "DESK-LAMP-WHT",  "price": 1299.00},
-    {"sku": "NOTEBOOK-A5",    "price": 249.00},
+    # Electronics
+    {"sku": "EARBUDS-BLK",        "price": 2499.00},
+    {"sku": "EARBUDS-WHT",        "price": 2499.00},
+    {"sku": "DESK-LAMP-WHT",      "price": 1299.00},
+    {"sku": "POWERBANK-10K",      "price": 1499.00},
+    {"sku": "SPKR-BT-BLK",        "price": 1999.00},
+    {"sku": "HEADPHONE-ANC-BLK",  "price": 3999.00},
+    {"sku": "WEBCAM-1080P",        "price": 2299.00},
+    {"sku": "MOUSE-WIRELESS-GRY", "price": 999.00},
+    {"sku": "KEYBOARD-MECH-RGB",  "price": 4999.00},
+    {"sku": "USB-HUB-7PORT",      "price": 899.00},
+    # Fitness & Kitchen
+    {"sku": "WATERBOTTLE-1L",     "price": 799.00},
+    {"sku": "MUG-CERAMIC-BLK",    "price": 449.00},
+    {"sku": "CUTTINGBOARD-WD",    "price": 649.00},
+    {"sku": "CHEF-KNIFE-8IN",     "price": 1199.00},
+    {"sku": "LUNCHBOX-STL",       "price": 799.00},
+    {"sku": "YOGA-MAT-PUR",       "price": 999.00},
+    {"sku": "DUMBBELL-5KG-PAIR",  "price": 1799.00},
+    {"sku": "RES-BAND-SET",       "price": 599.00},
+    {"sku": "SHAKER-BOTTLE-750",  "price": 499.00},
+    {"sku": "FOAM-ROLLER-BLK",    "price": 849.00},
+    # Accessories
+    {"sku": "PHONE-CASE-S23",     "price": 349.00},
+    {"sku": "CHARGER-CABLE-6FT",  "price": 399.00},
+    {"sku": "WATCH-STRAP-BLK",    "price": 499.00},
+    {"sku": "SUNGLASSES-POL-BLK", "price": 999.00},
+    {"sku": "WALLET-LEATHER-BRN", "price": 1199.00},
+    # Handmade Crafts
+    {"sku": "MADHUBANI-PAINT",    "price": 3499.00},
+    {"sku": "BRASS-GANESHA",      "price": 1599.00},
+    {"sku": "JUTE-BASKET",        "price": 699.00},
+    {"sku": "BLOCKPRINT-KURTA",   "price": 1299.00},
+    {"sku": "COPPER-BOTTLE",      "price": 899.00},
+    {"sku": "TERRACOTTA-POT",     "price": 549.00},
+    {"sku": "SANDALWOOD-INCENSE", "price": 299.00},
+    {"sku": "EMBROIDERED-CUSHION","price": 799.00},
+    {"sku": "WARLI-FRAME",        "price": 1899.00},
+    {"sku": "BAMBOO-TRAY",        "price": 1099.00},
 ]
 
 

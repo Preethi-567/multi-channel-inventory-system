@@ -141,7 +141,7 @@ def generate_historical_sales(months_back: int = 6):
                         hours=random.randint(9, 21),
                         minutes=random.randint(0, 59)
                     )
-                    external_id = f"HIST-{channel_name[:3].upper()}-{random.randint(100000,999999)}"
+                    external_id = f"HIST-{channel_name[:3].upper()}-{uuid.uuid4().hex[:8].upper()}"
 
                     order = Order(
                         id=uuid.uuid4(),
